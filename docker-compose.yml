@@ -1,0 +1,93 @@
+# docker-compose.yml
+services:
+
+  # ── Local Hardhat Ethereum node ──────────────────────────────────────────────
+  chain:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./blockchain:/app
+      - blockchain_modules:/app/node_modules
+    command: >
+      sh -c "npm install &&
+             npx hardhat node --hostname 0.0.0.0"
+    ports:
+      - "8545:8545"
+    healthcheck:
+      test:
+        - "CMD"
+        - "node"
+        - "-e"
+        - >
+          const h=require('http'),
+          body=JSON.stringify({jsonrpc:'2.0',method:'eth_blockNumber',params:[],id:1}),
+          req=h.request(
+            {hostname:'127.0.0.1',port:8545,method:'POST',
+             headers:{'Content-Type':'application/json','Content-Length':Buffer.byteLength(body)}},
+            r=>process.exit(r.statusCode===200?0:1)
+          );
+          req.on('error',()=>process.exit(1));
+          req.write(body);
+          req.end();
+      interval: 5s
+      timeout: 10s
+      retries: 20
+      start_period: 60s
+
+  # ── One-shot deployer — compiles + deploys BadgeNFT.sol ─────────────────────
+  deployer:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./blockchain:/app
+      - blockchain_modules:/app/node_modules
+      #         host path          container path (deploy.js writes here)
+      - ./api/deployments:/api/deployments
+    command: >
+      sh -c "npm install &&
+             npx hardhat run scripts/deploy.js --network localhost"
+    environment:
+      RPC_URL: http://chain:8545
+    depends_on:
+      chain:
+        condition: service_healthy
+    restart: "no"
+
+  # ── Node.js REST API ─────────────────────────────────────────────────────────
+  api:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./api:/app
+      - api_modules:/app/node_modules
+      - api_data:/app/data
+      #         host path          container path (contract.js reads here)
+      - ./api/deployments:/app/deployments
+    command: >
+      sh -c "npm install && node src/server.js"
+    ports:
+      - "3000:3000"
+    environment:
+      RPC_URL: http://chain:8545
+      PORT: 3000
+      JWT_SECRET: badge_nft_local_dev_jwt_secret_2024_change_in_prod
+    depends_on:
+      chain:
+        condition: service_healthy
+      deployer:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  # ── Static frontend served by nginx ─────────────────────────────────────────
+  frontend:
+    image: nginx:alpine
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+
+volumes:
+  api_data:
+  api_modules:
+  blockchain_modules:

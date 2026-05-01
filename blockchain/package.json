@@ -1,0 +1,16 @@
+{
+  "name": "badge-nft-blockchain",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "node": "hardhat node --hostname 0.0.0.0",
+    "compile": "hardhat compile",
+    "deploy": "hardhat run scripts/deploy.js --network localhost",
+    "test": "hardhat test"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ethers": "^3.0.8",
+    "ethers": "^6.13.2",
+    "hardhat": "^2.22.10"
+  }
+}

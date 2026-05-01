@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BadgeNFT — Course Completion Platform</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- Rainbow stripe at very top -->
+  <div class="page-stripe"></div>
+
+  <!-- ── Top bar ──────────────────────────────────────────────────────────── -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="logo">
+        <div class="logo-icon">🎓</div>
+        BadgeNFT
+      </div>
+      <div class="chain-status" id="chainStatus">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="statusText">Connecting…</span>
+      </div>
+    </div>
+    <div class="topbar-right" id="topbarRight">
+      <!-- Populated by JS -->
+    </div>
+  </header>
+
+  <!-- ── Main ─────────────────────────────────────────────────────────────── -->
+  <main class="main">
+
+    <!-- LOGIN PANEL -->
+    <section class="panel" id="panelLogin">
+      <div class="panel-inner panel-login-inner">
+        <div class="login-card">
+          <div class="login-eyebrow">Blockchain-Backed Credentials</div>
+          <h1 class="login-title">Course Badge<br>Platform</h1>
+          <p class="login-sub">Sign in to issue or view your soul-bound NFT achievement badges.</p>
+
+          <div class="form-group" style="margin-bottom:14px;">
+            <label>Username</label>
+            <input type="text" id="loginUsername" placeholder="issuer or student username" autocomplete="username" />
+          </div>
+          <div class="form-group" style="margin-bottom:20px;">
+            <label>Password</label>
+            <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password" />
+          </div>
+          <button class="btn btn-primary btn-full" onclick="login()">Sign In →</button>
+          <div class="msg" id="loginMsg"></div>
+
+          <div class="login-hint">
+            <strong>Default issuer:</strong> <code>issuer</code> / <code>issuer1234</code>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ISSUER DASHBOARD -->
+    <section class="panel hidden" id="panelIssuer">
+
+      <!-- Tab bar -->
+      <nav class="tabs">
+        <button class="tab active" data-tab="tabMint"       onclick="switchTab('tabMint',       this)">Mint Badge</button>
+        <button class="tab"        data-tab="tabStudents"   onclick="switchTab('tabStudents',   this)">Students</button>
+        <button class="tab"        data-tab="tabGallery"    onclick="switchTab('tabGallery',    this)">Gallery</button>
+        <button class="tab"        data-tab="tabHistory"    onclick="switchTab('tabHistory',    this)">History</button>
+        <button class="tab"        data-tab="tabBlockchain" onclick="switchTab('tabBlockchain', this)">Blockchain</button>
+      </nav>
+
+      <!-- ══ TAB: Mint Badge ══════════════════════════════════════════════ -->
+      <div class="tab-content active" id="tabMint">
+
+        <!-- Transaction cycle strip -->
+        <div class="cycle-strip">
+          <div class="cycle-strip-step">
+            <span class="cycle-strip-num">1</span>
+            <span class="cycle-strip-label">Fill Form</span>
+          </div>
+          <span class="cycle-strip-arrow">›</span>
+          <div class="cycle-strip-step">
+            <span class="cycle-strip-num">2</span>
+            <span class="cycle-strip-label">API Validates</span>
+          </div>
+          <span class="cycle-strip-arrow">›</span>
+          <div class="cycle-strip-step">
+            <span class="cycle-strip-num">3</span>
+            <span class="cycle-strip-label">Tx Signed</span>
+          </div>
+          <span class="cycle-strip-arrow">›</span>
+          <div class="cycle-strip-step">
+            <span class="cycle-strip-num">4</span>
+            <span class="cycle-strip-label">On-Chain Mint</span>
+          </div>
+          <span class="cycle-strip-arrow">›</span>
+          <div class="cycle-strip-step">
+            <span class="cycle-strip-num">5</span>
+            <span class="cycle-strip-label">Event Emitted</span>
+          </div>
+          <span class="cycle-strip-arrow">›</span>
+          <div class="cycle-strip-step">
+            <span class="cycle-strip-num">6</span>
+            <span class="cycle-strip-label">Badge Issued ✓</span>
+          </div>
+        </div>
+
+        <h2 class="section-title">Mint New Badge</h2>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Recipient (Student Wallet)</label>
+            <select id="mintRecipientSelect" onchange="onRecipientSelect()">
+              <option value="">— Select registered student —</option>
+            </select>
+            <input type="text" id="mintRecipient" placeholder="0x… or select above" style="margin-top:8px;" />
+          </div>
+
+          <div class="form-group">
+            <label>Student Name</label>
+            <input type="text" id="mintStudentName" placeholder="e.g. Alice Mahmoud" />
+          </div>
+
+          <div class="form-group">
+            <label>Course Name</label>
+            <input type="text" id="mintCourseName" placeholder="e.g. Blockchain Fundamentals" />
+          </div>
+
+          <div class="form-group">
+            <label>Category</label>
+            <select id="mintCategory">
+              <option value="Blockchain">⛓ Blockchain</option>
+              <option value="Web Dev">🌐 Web Dev</option>
+              <option value="Security">🔒 Security</option>
+              <option value="Data Science">📊 Data Science</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Grade Tier</label>
+            <select id="mintGrade">
+              <option value="Gold">🥇 Gold</option>
+              <option value="Silver">🥈 Silver</option>
+              <option value="Bronze">🥉 Bronze</option>
+            </select>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="mintBadge()" id="mintBtn">Mint Badge →</button>
+        <div class="msg" id="mintMsg"></div>
+
+        <div class="result-card hidden" id="mintResult">
+          <h3>✅ Badge Minted!</h3>
+          <div class="result-row"><span>Token ID</span><strong id="mintResultId"></strong></div>
+          <div class="result-row"><span>Tx Hash</span><code id="mintResultTx" class="hash"></code></div>
+          <div class="result-row"><span>Block</span><strong id="mintResultBlock"></strong></div>
+        </div>
+      </div>
+
+      <!-- ══ TAB: Students ════════════════════════════════════════════════ -->
+      <div class="tab-content hidden" id="tabStudents">
+        <div class="section-header">
+          <h2 class="section-title" style="margin-bottom:0;">Registered Students</h2>
+          <button class="btn btn-primary btn-sm" onclick="showRegisterForm()">+ Register Student</button>
+        </div>
+
+        <div class="register-form hidden" id="registerForm">
+          <h3>Register New Student</h3>
+          <div id="freeAccountsInfo" style="display:none;margin-bottom:14px;font-size:13px;"></div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Username</label>
+              <input type="text" id="regUsername" placeholder="e.g. alice" autocomplete="off" />
+            </div>
+            <div class="form-group">
+              <label>Password</label>
+              <input type="password" id="regPassword" placeholder="min 6 characters" autocomplete="new-password" />
+            </div>
+            <div class="form-group">
+              <label>Full Name</label>
+              <input type="text" id="regStudentName" placeholder="e.g. Alice Mahmoud" />
+            </div>
+            <div class="form-group">
+              <label>Assign Wallet
+                <span style="color:var(--text3);font-size:11px;font-weight:400;text-transform:none;letter-spacing:0;"> — auto-selected</span>
+              </label>
+              <select id="regWalletSelect" onchange="onWalletSelect()">
+                <option value="">Loading accounts…</option>
+              </select>
+              <input type="hidden" id="regWallet" />
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button class="btn btn-primary" onclick="registerStudent()" id="regBtn">Register Student</button>
+            <button class="btn btn-ghost"   onclick="hideRegisterForm()">Cancel</button>
+          </div>
+          <div class="msg" id="regMsg"></div>
+        </div>
+
+        <div class="student-list" id="studentList">
+          <div class="empty-state">Loading students…</div>
+        </div>
+
+        <div class="section-divider"></div>
+        <h3 style="font-family:'Fraunces',serif;font-size:16px;margin-bottom:16px;">Change Issuer Password</h3>
+        <div class="form-grid" style="max-width:420px;">
+          <div class="form-group">
+            <label>Current Password</label>
+            <input type="password" id="pwdCurrent" />
+          </div>
+          <div class="form-group">
+            <label>New Password</label>
+            <input type="password" id="pwdNew" />
+          </div>
+        </div>
+        <button class="btn btn-secondary" onclick="changePassword()">Update Password</button>
+        <div class="msg" id="pwdMsg"></div>
+      </div>
+
+      <!-- ══ TAB: Gallery ════════════════════════════════════════════════ -->
+      <div class="tab-content hidden" id="tabGallery">
+        <h2 class="section-title">Badge Gallery</h2>
+        <div class="gallery-controls">
+          <input type="text" id="galleryAddress" placeholder="Wallet address to look up" style="flex:1;" />
+          <button class="btn btn-primary" onclick="loadBadgesForAddress()">Load Badges</button>
+        </div>
+        <div class="sort-bar" id="gallerySortBar" style="display:none;">
+          Sort by:
+          <button class="sort-btn active" onclick="sortGallery('grade',  this)">Grade</button>
+          <button class="sort-btn"        onclick="sortGallery('date',   this)">Date</button>
+          <button class="sort-btn"        onclick="sortGallery('course', this)">Course</button>
+        </div>
+        <div class="gallery-summary hidden" id="gallerySummary"></div>
+        <div class="badge-grid" id="badgeGrid"></div>
+      </div>
+
+      <!-- ══ TAB: History ════════════════════════════════════════════════ -->
+      <div class="tab-content hidden" id="tabHistory">
+        <div class="section-header">
+          <h2 class="section-title" style="margin-bottom:0;">Badge Event History</h2>
+          <button class="btn btn-secondary btn-sm" onclick="loadHistory()">↻ Refresh</button>
+        </div>
+        <div class="history-list" id="historyList">
+          <div class="empty-state">Click Refresh to load history.</div>
+        </div>
+      </div>
+
+      <!-- ══ TAB: Blockchain Visualizer ═══════════════════════════════ -->
+      <div class="tab-content hidden" id="tabBlockchain">
+        <div class="blockchain-viz">
+
+          <!-- Mint Transaction Cycle -->
+          <div class="cycle-section">
+            <div class="cycle-title">Mint Transaction Lifecycle</div>
+            <div class="cycle-sub">How a badge goes from a form submission to an on-chain soul-bound NFT</div>
+            <div class="cycle-flow">
+              <div class="cycle-step">
+                <div class="cycle-step-num">1</div>
+                <div class="cycle-step-icon">📝</div>
+                <div class="cycle-step-label">Issuer Submits</div>
+                <div class="cycle-step-desc">Form data sent to Node.js API with JWT auth</div>
+              </div>
+              <div class="cycle-arrow">›</div>
+              <div class="cycle-step">
+                <div class="cycle-step-num">2</div>
+                <div class="cycle-step-icon">🔐</div>
+                <div class="cycle-step-label">Auth &amp; Validate</div>
+                <div class="cycle-step-desc">Role check, address validation, field requirements</div>
+              </div>
+              <div class="cycle-arrow">›</div>
+              <div class="cycle-step">
+                <div class="cycle-step-num">3</div>
+                <div class="cycle-step-icon">✍️</div>
+                <div class="cycle-step-label">Tx Signed</div>
+                <div class="cycle-step-desc">Issuer wallet (Account #0) signs via ethers.js</div>
+              </div>
+              <div class="cycle-arrow">›</div>
+              <div class="cycle-step">
+                <div class="cycle-step-num">4</div>
+                <div class="cycle-step-icon">⛓</div>
+                <div class="cycle-step-label">mintBadge()</div>
+                <div class="cycle-step-desc">BadgeNFT.sol stores data, updates mappings, increments totalSupply</div>
+              </div>
+              <div class="cycle-arrow">›</div>
+              <div class="cycle-step">
+                <div class="cycle-step-num">5</div>
+                <div class="cycle-step-icon">📡</div>
+                <div class="cycle-step-label">Event Emitted</div>
+                <div class="cycle-step-desc">BadgeMinted event written to block, permanent on-chain audit</div>
+              </div>
+              <div class="cycle-arrow">›</div>
+              <div class="cycle-step">
+                <div class="cycle-step-num">6</div>
+                <div class="cycle-step-icon">🏅</div>
+                <div class="cycle-step-label">Badge Issued</div>
+                <div class="cycle-step-desc">Token ID returned, metadata URI points to /api/metadata/:id</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Revocation Cycle -->
+          <div class="cycle-section">
+            <div class="cycle-title">Revocation Lifecycle</div>
+            <div class="cycle-sub">Badge revocation keeps the audit trail intact — nothing is deleted from the chain</div>
+            <div class="cycle-flow revoke-flow">
+              <div class="cycle-step">
+                <div class="cycle-step-num">1</div>
+                <div class="cycle-step-icon">🚫</div>
+                <div class="cycle-step-label">Issuer Revokes</div>
+                <div class="cycle-step-desc">Token ID + reason submitted via POST /api/badges/revoke</div>
+              </div>
+              <div class="cycle-arrow">›</div>
+              <div class="cycle-step">
+                <div class="cycle-step-num">2</div>
+                <div class="cycle-step-icon">🔐</div>
+                <div class="cycle-step-label">Auth Check</div>
+                <div class="cycle-step-desc">Only the contract issuer wallet may call revokeBadge()</div>
+              </div>
+              <div class="cycle-arrow">›</div>
+              <div class="cycle-step">
+                <div class="cycle-step-num">3</div>
+                <div class="cycle-step-icon">📝</div>
+                <div class="cycle-step-label">State Updated</div>
+                <div class="cycle-step-desc">_revoked[tokenId] = true, reason stored on-chain</div>
+              </div>
+              <div class="cycle-arrow">›</div>
+              <div class="cycle-step">
+                <div class="cycle-step-num">4</div>
+                <div class="cycle-step-icon">📡</div>
+                <div class="cycle-step-label">Event Emitted</div>
+                <div class="cycle-step-desc">BadgeRevoked event logged — permanent, immutable record</div>
+              </div>
+              <div class="cycle-arrow">›</div>
+              <div class="cycle-step">
+                <div class="cycle-step-num">5</div>
+                <div class="cycle-step-icon">👁</div>
+                <div class="cycle-step-label">Audit Preserved</div>
+                <div class="cycle-step-desc">Badge data stays on-chain; isRevoked() returns true for verification</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Live Blockchain View -->
+          <div>
+            <div class="blockchain-viz-header">
+              <div>
+                <div class="cycle-title" style="margin-bottom:4px;">Live Blockchain Blocks</div>
+                <div class="cycle-sub" style="margin-bottom:0;">Blocks containing BadgeNFT transactions from block 0</div>
+              </div>
+              <button class="btn btn-secondary btn-sm" onclick="loadBlockchain()">↻ Refresh</button>
+            </div>
+
+            <div class="blocks-legend">
+              <div class="legend-item"><div class="legend-dot mint"></div> Mint event</div>
+              <div class="legend-item"><div class="legend-dot revoke"></div> Revoke event</div>
+              <div class="legend-item"><div class="legend-dot empty"></div> Empty / system block</div>
+            </div>
+
+            <div class="blockchain-chain" id="blockchainChain">
+              <div class="blocks-loading">Click Refresh to visualize the blockchain ↑</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </section>
+
+    <!-- STUDENT DASHBOARD -->
+    <section class="panel hidden" id="panelStudent">
+      <nav class="tabs">
+        <button class="tab active" data-tab="tabMyBadges" onclick="switchTabStudent('tabMyBadges', this)">My Badges</button>
+        <button class="tab"        data-tab="tabVerify"   onclick="switchTabStudent('tabVerify',   this)">Verify Token</button>
+      </nav>
+
+      <!-- My Badges -->
+      <div class="tab-content active" id="tabMyBadges">
+        <h2 class="section-title">My Achievement Badges</h2>
+        <div class="sort-bar" id="studentSortBar" style="display:none;">
+          Sort by:
+          <button class="sort-btn active" onclick="sortStudentGallery('grade',  this)">Grade</button>
+          <button class="sort-btn"        onclick="sortStudentGallery('date',   this)">Date</button>
+          <button class="sort-btn"        onclick="sortStudentGallery('course', this)">Course</button>
+        </div>
+        <div class="gallery-summary hidden" id="studentSummary"></div>
+        <div class="badge-grid" id="myBadgeGrid"></div>
+      </div>
+
+      <!-- Verify -->
+      <div class="tab-content hidden" id="tabVerify">
+        <h2 class="section-title">Verify a Badge Token</h2>
+        <div class="gallery-controls">
+          <input type="number" id="verifyTokenId" placeholder="Token ID (e.g. 1)" min="1" style="flex:1;" />
+          <button class="btn btn-primary" onclick="verifyToken()">Verify →</button>
+        </div>
+        <div class="result-card hidden" id="verifyResult"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- BADGE DETAIL MODAL -->
+  <div class="modal-overlay hidden" id="modalOverlay" onclick="closeModal()">
+    <div class="modal" onclick="event.stopPropagation()">
+      <button class="modal-close" onclick="closeModal()">✕</button>
+      <div id="modalContent"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

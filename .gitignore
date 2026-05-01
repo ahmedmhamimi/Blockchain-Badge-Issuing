@@ -1,0 +1,113 @@
+##################################
+# Node.js / General
+##################################
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json.*.backup
+
+node_modules/
+api/node_modules/
+blockchain/node_modules/
+##################################
+# Logs
+##################################
+logs/
+*.log
+*.out
+*.err
+
+##################################
+# Environment / Secrets
+##################################
+.env
+.env.*
+!.env.example
+
+##################################
+# OS / System Files
+##################################
+.DS_Store
+Thumbs.db
+desktop.ini
+
+##################################
+# Editor / IDE
+##################################
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.bak
+
+##################################
+# API (backend)
+##################################
+api/node_modules/
+api/data/*.db
+api/data/*.sqlite
+api/data/*.json
+
+# local deployment state
+api/deployments/*.json
+
+##################################
+# Blockchain (Hardhat)
+##################################
+blockchain/node_modules/
+
+# Hardhat artifacts & cache
+blockchain/artifacts/
+blockchain/cache/
+
+# Deployment outputs (local/dev)
+blockchain/deployments/*.json
+
+# Typechain (if added later)
+blockchain/typechain/
+blockchain/typechain-types/
+
+# Coverage
+blockchain/coverage/
+blockchain/coverage.json
+
+##################################
+# Frontend
+##################################
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+
+##################################
+# Docker
+##################################
+*.pid
+*.seed
+
+##################################
+# Misc project files
+##################################
+combined.txt
+
+##################################
+# Temporary files
+##################################
+tmp/
+temp/
+*.tmp
+
+##################################
+# Optional: Ignore all JSON deployments except tracked ones
+##################################
+# Uncomment if you want strict control
+# **/deployments/*
+# !**/deployments/localhost.json
+
+##################################
+# Optional: Ignore all data dumps
+##################################
+# api/data/*
+# !api/data/.gitkeep
