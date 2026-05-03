@@ -438,6 +438,119 @@ app.get("/api/metadata/:tokenId", async (req, res) => {
 });
 
 // =============================================================================
+// CHAIN EXPLORER ROUTES
+// =============================================================================
+
+// GET /api/chain/blocks  [issuer only]
+// Returns real block data for every block from the deployment block to latest,
+// enriched with BadgeNFT event data from the history.
+app.get("/api/chain/blocks", authenticate, requireRole("issuer"), async (req, res) => {
+  try {
+    const result = await getContract();
+    if (!result.ok) return res.status(result.status || 503).json({ ok: false, message: result.message });
+
+    const { contract, provider, deployment } = result;
+
+    const latestBlockNum  = await provider.getBlockNumber();
+    const deployedAtBlock = deployment.deployedAt || 0;
+
+    // Fetch all badge events to know which blocks had activity
+    const history = await getBadgeHistory(contract, provider);
+    const eventsByBlock = {};
+    history.forEach(e => {
+      if (!eventsByBlock[e.blockNumber]) eventsByBlock[e.blockNumber] = [];
+      eventsByBlock[e.blockNumber].push(e);
+    });
+
+    // Build the set of block numbers to fetch:
+    // deployment block + all event blocks + last 5 blocks (for empty-block context)
+    const blockSet = new Set();
+    blockSet.add(deployedAtBlock);
+    Object.keys(eventsByBlock).forEach(n => blockSet.add(Number(n)));
+    const tail = Math.max(deployedAtBlock, latestBlockNum - 4);
+    for (let i = tail; i <= latestBlockNum; i++) blockSet.add(i);
+
+    const blockNums = [...blockSet].sort((a, b) => a - b);
+
+    // Fetch real block data in parallel (capped to avoid hammering RPC)
+    const blockDataArr = await Promise.all(
+      blockNums.map(n => provider.getBlock(n))
+    );
+
+    const blocks = blockDataArr
+      .filter(Boolean)
+      .map(b => ({
+        number:       b.number,
+        hash:         b.hash,
+        parentHash:   b.parentHash,
+        timestamp:    b.timestamp,
+        timestampISO: new Date(b.timestamp * 1000).toISOString(),
+        gasUsed:      b.gasUsed.toString(),
+        gasLimit:     b.gasLimit.toString(),
+        miner:        b.miner,
+        txCount:      b.transactions ? b.transactions.length : 0,
+        txHashes:     b.transactions || [],
+        isDeployment: b.number === deployedAtBlock,
+        events:       eventsByBlock[b.number] || []
+      }));
+
+    return res.json({
+      ok:              true,
+      blocks,
+      latestBlock:     latestBlockNum,
+      deployedAtBlock,
+      contractAddress: deployment.contractAddress,
+      deployerAddress: deployment.deployerAddress
+    });
+  } catch (err) {
+    return res.status(500).json({ ok: false, message: normalizeError(err) });
+  }
+});
+
+// GET /api/chain/ledger  [issuer only]
+// Returns balances for all Hardhat accounts (the wallet ledger).
+app.get("/api/chain/ledger", authenticate, requireRole("issuer"), async (req, res) => {
+  try {
+    const result = await getContract();
+    if (!result.ok) return res.status(result.status || 503).json({ ok: false, message: result.message });
+
+    const { provider } = result;
+    const { getHardhatAccounts } = require("./accounts");
+    const accounts = await getHardhatAccounts(provider);
+    const students = getAllStudents();
+    const studentMap = {};
+    students.forEach(s => { studentMap[s.walletAddress.toLowerCase()] = s; });
+
+    const depResult = getDeployment();
+    const deployerAddr = depResult.ok ? depResult.deployment.deployerAddress.toLowerCase() : null;
+
+    const ledger = await Promise.all(
+      accounts.map(async (acc) => {
+        const balanceWei = await provider.getBalance(acc.address);
+        const balanceEth = parseFloat(
+          (Number(balanceWei) / 1e18).toFixed(4)
+        );
+        const lc = acc.address.toLowerCase();
+        const student = studentMap[lc];
+        const isDeployer = lc === deployerAddr;
+        return {
+          index:       acc.index,
+          address:     acc.address,
+          label:       isDeployer ? "Issuer (Deployer)" : (student ? student.studentName : acc.label),
+          role:        isDeployer ? "issuer" : (student ? "student" : "unassigned"),
+          balanceEth,
+          balanceWei:  balanceWei.toString()
+        };
+      })
+    );
+
+    return res.json({ ok: true, ledger });
+  } catch (err) {
+    return res.status(500).json({ ok: false, message: normalizeError(err) });
+  }
+});
+
+// =============================================================================
 // Start
 // =============================================================================
 

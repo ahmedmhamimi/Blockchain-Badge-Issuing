@@ -130,18 +130,18 @@
             <label>Category</label>
             <select id="mintCategory">
               <option value="Blockchain">⛓ Blockchain</option>
-              <option value="Web Dev">🌐 Web Dev</option>
-              <option value="Security">🔒 Security</option>
-              <option value="Data Science">📊 Data Science</option>
+              <option value="Web Dev">Web Dev</option>
+              <option value="Security">Security</option>
+              <option value="Data Science">Data Science</option>
             </select>
           </div>
 
           <div class="form-group">
             <label>Grade Tier</label>
             <select id="mintGrade">
-              <option value="Gold">🥇 Gold</option>
-              <option value="Silver">🥈 Silver</option>
-              <option value="Bronze">🥉 Bronze</option>
+              <option value="Gold">Gold</option>
+              <option value="Silver">Silver</option>
+              <option value="Bronze">Bronze</option>
             </select>
           </div>
         </div>
@@ -150,7 +150,7 @@
         <div class="msg" id="mintMsg"></div>
 
         <div class="result-card hidden" id="mintResult">
-          <h3>✅ Badge Minted!</h3>
+          <h3>Badge Minted!</h3>
           <div class="result-row"><span>Token ID</span><strong id="mintResultId"></strong></div>
           <div class="result-row"><span>Tx Hash</span><code id="mintResultTx" class="hash"></code></div>
           <div class="result-row"><span>Block</span><strong id="mintResultBlock"></strong></div>
@@ -245,123 +245,44 @@
         </div>
       </div>
 
-      <!-- ══ TAB: Blockchain Visualizer ═══════════════════════════════ -->
+      <!-- ══ TAB: Chain Explorer ════════════════════════════════════════ -->
       <div class="tab-content hidden" id="tabBlockchain">
-        <div class="blockchain-viz">
 
-          <!-- Mint Transaction Cycle -->
-          <div class="cycle-section">
-            <div class="cycle-title">Mint Transaction Lifecycle</div>
-            <div class="cycle-sub">How a badge goes from a form submission to an on-chain soul-bound NFT</div>
-            <div class="cycle-flow">
-              <div class="cycle-step">
-                <div class="cycle-step-num">1</div>
-                <div class="cycle-step-icon">📝</div>
-                <div class="cycle-step-label">Issuer Submits</div>
-                <div class="cycle-step-desc">Form data sent to Node.js API with JWT auth</div>
-              </div>
-              <div class="cycle-arrow">›</div>
-              <div class="cycle-step">
-                <div class="cycle-step-num">2</div>
-                <div class="cycle-step-icon">🔐</div>
-                <div class="cycle-step-label">Auth &amp; Validate</div>
-                <div class="cycle-step-desc">Role check, address validation, field requirements</div>
-              </div>
-              <div class="cycle-arrow">›</div>
-              <div class="cycle-step">
-                <div class="cycle-step-num">3</div>
-                <div class="cycle-step-icon">✍️</div>
-                <div class="cycle-step-label">Tx Signed</div>
-                <div class="cycle-step-desc">Issuer wallet (Account #0) signs via ethers.js</div>
-              </div>
-              <div class="cycle-arrow">›</div>
-              <div class="cycle-step">
-                <div class="cycle-step-num">4</div>
-                <div class="cycle-step-icon">⛓</div>
-                <div class="cycle-step-label">mintBadge()</div>
-                <div class="cycle-step-desc">BadgeNFT.sol stores data, updates mappings, increments totalSupply</div>
-              </div>
-              <div class="cycle-arrow">›</div>
-              <div class="cycle-step">
-                <div class="cycle-step-num">5</div>
-                <div class="cycle-step-icon">📡</div>
-                <div class="cycle-step-label">Event Emitted</div>
-                <div class="cycle-step-desc">BadgeMinted event written to block, permanent on-chain audit</div>
-              </div>
-              <div class="cycle-arrow">›</div>
-              <div class="cycle-step">
-                <div class="cycle-step-num">6</div>
-                <div class="cycle-step-icon">🏅</div>
-                <div class="cycle-step-label">Badge Issued</div>
-                <div class="cycle-step-desc">Token ID returned, metadata URI points to /api/metadata/:id</div>
-              </div>
+        <!-- Explorer toolbar -->
+        <div class="chain-explorer-header">
+          <div class="chain-explorer-title-row">
+            <h2 class="section-title" style="margin-bottom:0;">Chain Explorer</h2>
+            <div class="chain-view-switcher">
+              <button class="chain-view-btn active" data-view="blocks" onclick="switchChainView('blocks')">Blocks</button>
+              <button class="chain-view-btn"        data-view="ledger" onclick="switchChainView('ledger')">Ledger</button>
             </div>
           </div>
 
-          <!-- Revocation Cycle -->
-          <div class="cycle-section">
-            <div class="cycle-title">Revocation Lifecycle</div>
-            <div class="cycle-sub">Badge revocation keeps the audit trail intact — nothing is deleted from the chain</div>
-            <div class="cycle-flow revoke-flow">
-              <div class="cycle-step">
-                <div class="cycle-step-num">1</div>
-                <div class="cycle-step-icon">🚫</div>
-                <div class="cycle-step-label">Issuer Revokes</div>
-                <div class="cycle-step-desc">Token ID + reason submitted via POST /api/badges/revoke</div>
-              </div>
-              <div class="cycle-arrow">›</div>
-              <div class="cycle-step">
-                <div class="cycle-step-num">2</div>
-                <div class="cycle-step-icon">🔐</div>
-                <div class="cycle-step-label">Auth Check</div>
-                <div class="cycle-step-desc">Only the contract issuer wallet may call revokeBadge()</div>
-              </div>
-              <div class="cycle-arrow">›</div>
-              <div class="cycle-step">
-                <div class="cycle-step-num">3</div>
-                <div class="cycle-step-icon">📝</div>
-                <div class="cycle-step-label">State Updated</div>
-                <div class="cycle-step-desc">_revoked[tokenId] = true, reason stored on-chain</div>
-              </div>
-              <div class="cycle-arrow">›</div>
-              <div class="cycle-step">
-                <div class="cycle-step-num">4</div>
-                <div class="cycle-step-icon">📡</div>
-                <div class="cycle-step-label">Event Emitted</div>
-                <div class="cycle-step-desc">BadgeRevoked event logged — permanent, immutable record</div>
-              </div>
-              <div class="cycle-arrow">›</div>
-              <div class="cycle-step">
-                <div class="cycle-step-num">5</div>
-                <div class="cycle-step-icon">👁</div>
-                <div class="cycle-step-label">Audit Preserved</div>
-                <div class="cycle-step-desc">Badge data stays on-chain; isRevoked() returns true for verification</div>
-              </div>
-            </div>
+          <!-- Stats bar (populated by JS) -->
+          <div class="chain-stats-bar" id="chainStatsBar">
+            <div class="cstat"><span class="cstat-val">—</span><span class="cstat-label">Latest Block</span></div>
           </div>
 
-          <!-- Live Blockchain View -->
-          <div>
-            <div class="blockchain-viz-header">
-              <div>
-                <div class="cycle-title" style="margin-bottom:4px;">Live Blockchain Blocks</div>
-                <div class="cycle-sub" style="margin-bottom:0;">Blocks containing BadgeNFT transactions from block 0</div>
-              </div>
-              <button class="btn btn-secondary btn-sm" onclick="loadBlockchain()">↻ Refresh</button>
+          <div class="chain-toolbar-row">
+            <div class="chain-legend">
+              <span class="chain-legend-dot deploy"></span>Deploy
+              <span class="chain-legend-dot tx"></span>Tx
+              <span class="chain-legend-dot empty-dot"></span>Empty
             </div>
-
-            <div class="blocks-legend">
-              <div class="legend-item"><div class="legend-dot mint"></div> Mint event</div>
-              <div class="legend-item"><div class="legend-dot revoke"></div> Revoke event</div>
-              <div class="legend-item"><div class="legend-dot empty"></div> Empty / system block</div>
-            </div>
-
-            <div class="blockchain-chain" id="blockchainChain">
-              <div class="blocks-loading">Click Refresh to visualize the blockchain ↑</div>
-            </div>
+            <button class="btn btn-secondary btn-sm" onclick="loadBlockchain()">↻ Refresh</button>
           </div>
-
         </div>
+
+        <!-- Blocks pane -->
+        <div id="chainBlocksPane">
+          <div class="chain-loading">Click Refresh to load the chain ↑</div>
+        </div>
+
+        <!-- Ledger pane -->
+        <div id="chainLedgerPane" class="hidden">
+          <div class="chain-loading">Click Refresh to load the ledger ↑</div>
+        </div>
+
       </div>
 
     </section>

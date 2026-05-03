@@ -625,120 +625,251 @@ async function loadHistory() {
   }).join("");
 }
 
-// ── Blockchain Visualizer ─────────────────────────────────────────────────────
+// ── Chain Explorer ────────────────────────────────────────────────────────────
+
+let _chainView = "blocks"; // "blocks" | "ledger"
+
+function switchChainView(view) {
+  _chainView = view;
+  document.querySelectorAll(".chain-view-btn").forEach(b => b.classList.remove("active"));
+  const btn = document.querySelector(`.chain-view-btn[data-view="${view}"]`);
+  if (btn) btn.classList.add("active");
+
+  const blocksPane = document.getElementById("chainBlocksPane");
+  const ledgerPane = document.getElementById("chainLedgerPane");
+  if (view === "blocks") {
+    blocksPane.classList.remove("hidden");
+    ledgerPane.classList.add("hidden");
+    loadChainBlocks();
+  } else {
+    blocksPane.classList.add("hidden");
+    ledgerPane.classList.remove("hidden");
+    loadChainLedger();
+  }
+}
 
 async function loadBlockchain() {
-  const chain = document.getElementById("blockchainChain");
-  chain.innerHTML = `<div class="blocks-loading">Loading blocks…</div>`;
+  // Entry point called by the tab's Refresh button — reload whichever view is active
+  if (_chainView === "ledger") {
+    loadChainLedger();
+  } else {
+    loadChainBlocks();
+  }
+}
+
+// ── Blocks view ───────────────────────────────────────────────────────────────
+
+async function loadChainBlocks() {
+  const wrap = document.getElementById("chainBlocksPane");
+  wrap.innerHTML = `<div class="chain-loading"><span class="chain-loading-spinner"></span>Fetching chain data…</div>`;
 
   try {
-    // Load history to understand which blocks have events
-    const { data: histData } = await apiFetch("GET", "/api/badges/history");
-    const { data: healthData } = await apiFetch("GET", "/api/health");
-
-    if (!healthData.ok) {
-      chain.innerHTML = `<div class="blocks-loading">Chain unavailable</div>`;
+    const { data } = await apiFetch("GET", "/api/chain/blocks");
+    if (!data.ok) {
+      wrap.innerHTML = `<div class="chain-loading chain-error">⚠ ${esc(data.message)}</div>`;
       return;
     }
 
-    const currentBlock = healthData.blockNumber;
-    const history = histData.ok ? histData.history : [];
+    // Update stats bar
+    renderChainStats(data);
 
-    // Group events by block
-    const eventsByBlock = {};
-    history.forEach(e => {
-      if (!eventsByBlock[e.blockNumber]) eventsByBlock[e.blockNumber] = [];
-      eventsByBlock[e.blockNumber].push(e);
-    });
+    const blocks = [...data.blocks].reverse(); // newest first
+    if (!blocks.length) {
+      wrap.innerHTML = `<div class="chain-loading">No blocks yet.</div>`;
+      return;
+    }
 
-    // Build list of blocks to display: genesis + all blocks with events + latest few
-    const blockSet = new Set();
-    blockSet.add(0); // genesis-like: block 1
-    Object.keys(eventsByBlock).forEach(n => blockSet.add(Number(n)));
-    // Also show last 3 blocks for context
-    for (let i = Math.max(1, currentBlock - 2); i <= currentBlock; i++) blockSet.add(i);
+    let html = `<div class="chain-blocks-list">`;
+    blocks.forEach((block, idx) => {
+      const isDeployment = block.isDeployment;
+      const hasEvents    = block.events.length > 0;
+      const time         = new Date(block.timestampISO).toLocaleString();
+      const shortHash    = block.hash ? block.hash.slice(0, 10) + "…" + block.hash.slice(-6) : "—";
+      const parentShort  = block.parentHash ? block.parentHash.slice(0, 10) + "…" + block.parentHash.slice(-6) : "—";
+      const gasUsedNum   = parseInt(block.gasUsed, 10);
+      const gasLimitNum  = parseInt(block.gasLimit, 10);
+      const gasPct       = gasLimitNum > 0 ? Math.round((gasUsedNum / gasLimitNum) * 100) : 0;
 
-    const blockNums = [...blockSet].sort((a, b) => a - b);
+      const blockTag = isDeployment
+        ? `<span class="block-badge deploy">DEPLOY</span>`
+        : hasEvents
+          ? `<span class="block-badge tx">TX</span>`
+          : `<span class="block-badge empty">EMPTY</span>`;
 
-    // Render blocks newest-first
-    const reversed = [...blockNums].reverse();
-    let html = "";
-
-    reversed.forEach((num, idx) => {
-      const events = eventsByBlock[num] || [];
-      const isGenesis = num <= 1;
-
-      // Block card
       html += `
-        <div class="block-node ${isGenesis ? "genesis" : ""}">
-          <div class="block-header">
-            <div class="block-num">${isGenesis ? "⚡ Block #" + num + " (Genesis)" : "Block #" + num}</div>
-            <div class="block-hash-short">${generateFakeHash(num)}</div>
-            <div class="block-time">${events.length > 0 && events[0].timestampISO ? new Date(events[0].timestampISO).toLocaleString() : "—"}</div>
+        <div class="chain-block ${isDeployment ? "is-deploy" : ""} ${hasEvents ? "has-events" : ""}">
+          <div class="chain-block-header">
+            <div class="chain-block-num-wrap">
+              ${blockTag}
+              <span class="chain-block-num">Block #${block.number}</span>
+            </div>
+            <div class="chain-block-hash" title="${block.hash}">${shortHash}</div>
+            <div class="chain-block-time">${time}</div>
           </div>
-          <div class="block-body">
-            ${events.length === 0
-              ? `<div class="block-empty">${isGenesis ? "Contract deployment / system transaction" : "No badge transactions in this block"}</div>`
-              : `<div class="block-tx-list">${events.map(renderBlockTx).join("")}</div>`
-            }
+
+          <div class="chain-block-meta-row">
+            <div class="chain-meta-cell">
+              <span class="chain-meta-label">Parent Hash</span>
+              <span class="chain-meta-val mono" title="${block.parentHash}">${parentShort}</span>
+            </div>
+            <div class="chain-meta-cell">
+              <span class="chain-meta-label">Miner</span>
+              <span class="chain-meta-val mono">${block.miner ? block.miner.slice(0, 10) + "…" : "—"}</span>
+            </div>
+            <div class="chain-meta-cell">
+              <span class="chain-meta-label">Gas Used</span>
+              <span class="chain-meta-val">${gasUsedNum.toLocaleString()} <span class="chain-gas-pct">(${gasPct}%)</span></span>
+            </div>
+            <div class="chain-meta-cell">
+              <span class="chain-meta-label">Txns</span>
+              <span class="chain-meta-val">${block.txCount}</span>
+            </div>
           </div>
+
+          ${isDeployment ? `
+            <div class="chain-deploy-row">
+              <span class="chain-deploy-icon">📄</span>
+              <div class="chain-deploy-body">
+                <div class="chain-deploy-label">Contract Deployed</div>
+                <div class="chain-deploy-addr mono">${esc(data.contractAddress)}</div>
+              </div>
+            </div>
+          ` : ""}
+
+          ${block.events.length > 0 ? `
+            <div class="chain-tx-list">
+              ${block.events.map(e => renderChainTx(e)).join("")}
+            </div>
+          ` : (!isDeployment ? `
+            <div class="chain-block-empty">No BadgeNFT events in this block</div>
+          ` : "")}
         </div>
       `;
 
-      // Connector between blocks (skip last)
-      if (idx < reversed.length - 1) {
-        const nextNum = reversed[idx + 1];
-        const gap = num - nextNum;
+      // Chain link connector (not after last)
+      if (idx < blocks.length - 1) {
+        const nextBlock = blocks[idx + 1];
+        const gap = block.number - nextBlock.number;
         html += `
-          <div class="block-connector">
-            <span class="block-connector-icon">⛓</span>
-            <div class="block-connector-line"></div>
-            ${gap > 1 ? `<span style="font-size:11px;color:var(--text3);white-space:nowrap;">${gap - 1} block${gap > 2 ? "s" : ""} skipped</span><div class="block-connector-line"></div>` : ""}
-            <span class="block-connector-icon">⛓</span>
+          <div class="chain-link">
+            <div class="chain-link-line"></div>
+            <div class="chain-link-label">
+              ${gap > 1
+                ? `<span class="chain-link-gap">${gap - 1} skipped block${gap > 2 ? "s" : ""}</span>`
+                : `<span class="chain-link-arrow">↑</span>`}
+            </div>
+            <div class="chain-link-line"></div>
           </div>
         `;
       }
     });
-
-    if (!html) {
-      chain.innerHTML = `<div class="blocks-loading">No blocks to display yet. Mint a badge first!</div>`;
-    } else {
-      chain.innerHTML = html;
-    }
+    html += `</div>`;
+    wrap.innerHTML = html;
 
   } catch (err) {
-    chain.innerHTML = `<div class="blocks-loading">Error loading blockchain: ${esc(String(err))}</div>`;
+    wrap.innerHTML = `<div class="chain-loading chain-error">⚠ ${esc(String(err))}</div>`;
   }
 }
 
-function renderBlockTx(e) {
-  const isMint = e.event === "BadgeMinted";
-  const label  = isMint ? "mintBadge()" : "revokeBadge()";
-  const detail = isMint
-    ? `Token #${e.tokenId} · Course: ${esc(e.courseName || "—")} · To: ${e.recipient ? e.recipient.slice(0, 10) + "…" : "—"}`
+function renderChainTx(e) {
+  const isMint   = e.event === "BadgeMinted";
+  const fnName   = isMint ? "mintBadge()" : "revokeBadge()";
+  const detail   = isMint
+    ? `Token #${e.tokenId} · ${esc(e.courseName || "—")} · ${esc(e.category || "")} · ${e.recipient ? e.recipient.slice(0, 12) + "…" : "—"}`
     : `Token #${e.tokenId} · Reason: ${esc(e.reason || "—")}`;
+  const fullHash = e.txHash || "";
+  const shortTx  = fullHash ? fullHash.slice(0, 14) + "…" + fullHash.slice(-6) : "—";
 
   return `
-    <div class="block-tx">
-      <div class="block-tx-icon ${isMint ? "mint" : "revoke"}">${isMint ? "🪙" : "⛔"}</div>
-      <div class="block-tx-body">
-        <div class="block-tx-type">${label}</div>
-        <div class="block-tx-detail">${detail}</div>
+    <div class="chain-tx ${isMint ? "mint" : "revoke"}">
+      <div class="chain-tx-badge ${isMint ? "mint" : "revoke"}">${isMint ? "MINT" : "REVOKE"}</div>
+      <div class="chain-tx-body">
+        <div class="chain-tx-fn">${fnName}</div>
+        <div class="chain-tx-detail">${detail}</div>
       </div>
-      <div class="block-tx-hash">${e.txHash ? e.txHash.slice(0, 14) + "…" : ""}</div>
+      <div class="chain-tx-hash mono" title="${fullHash}">${shortTx}</div>
     </div>
   `;
 }
 
-function generateFakeHash(blockNum) {
-  // Deterministic short hash based on block number for display
-  const chars = "0123456789abcdef";
-  let hash = "0x";
-  const seed = blockNum * 31337;
-  for (let i = 0; i < 8; i++) {
-    hash += chars[(seed * (i + 1) * 7 + i * 13) % 16];
+function renderChainStats(data) {
+  const el = document.getElementById("chainStatsBar");
+  if (!el) return;
+  const mintCount   = data.blocks.reduce((s, b) => s + b.events.filter(e => e.event === "BadgeMinted").length, 0);
+  const revokeCount = data.blocks.reduce((s, b) => s + b.events.filter(e => e.event === "BadgeRevoked").length, 0);
+  el.innerHTML = `
+    <div class="cstat"><span class="cstat-val">${data.latestBlock}</span><span class="cstat-label">Latest Block</span></div>
+    <div class="cstat-divider"></div>
+    <div class="cstat"><span class="cstat-val">${data.blocks.length}</span><span class="cstat-label">Shown</span></div>
+    <div class="cstat-divider"></div>
+    <div class="cstat"><span class="cstat-val" style="color:var(--success)">${mintCount}</span><span class="cstat-label">Mints</span></div>
+    <div class="cstat-divider"></div>
+    <div class="cstat"><span class="cstat-val" style="color:var(--danger)">${revokeCount}</span><span class="cstat-label">Revokes</span></div>
+    <div class="cstat-divider"></div>
+    <div class="cstat" style="max-width:260px;overflow:hidden;">
+      <span class="cstat-val mono" style="font-size:10px;">${esc(data.contractAddress)}</span>
+      <span class="cstat-label">Contract</span>
+    </div>
+  `;
+}
+
+// ── Ledger view ───────────────────────────────────────────────────────────────
+
+async function loadChainLedger() {
+  const wrap = document.getElementById("chainLedgerPane");
+  wrap.innerHTML = `<div class="chain-loading"><span class="chain-loading-spinner"></span>Loading ledger…</div>`;
+
+  try {
+    const { data } = await apiFetch("GET", "/api/chain/ledger");
+    if (!data.ok) {
+      wrap.innerHTML = `<div class="chain-loading chain-error">⚠ ${esc(data.message)}</div>`;
+      return;
+    }
+
+    const maxBal = Math.max(...data.ledger.map(a => a.balanceEth), 0.001);
+
+    let html = `<div class="ledger-table-wrap"><table class="ledger-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Address</th>
+          <th>Name / Role</th>
+          <th>Balance (ETH)</th>
+          <th style="width:160px"></th>
+        </tr>
+      </thead>
+      <tbody>`;
+
+    data.ledger.forEach(acc => {
+      const barPct = Math.max(2, Math.round((acc.balanceEth / maxBal) * 100));
+      const roleClass = acc.role === "issuer" ? "role-issuer" : acc.role === "student" ? "role-student" : "role-unassigned";
+      html += `
+        <tr class="ledger-row ${acc.role}">
+          <td class="ledger-idx">${acc.index}</td>
+          <td class="ledger-addr mono">${acc.address}</td>
+          <td class="ledger-name">
+            <span class="ledger-name-text">${esc(acc.label)}</span>
+            <span class="ledger-role-pill ${roleClass}">${acc.role}</span>
+          </td>
+          <td class="ledger-bal">
+            <span class="ledger-bal-num">${acc.balanceEth.toFixed(4)}</span>
+            <span class="ledger-bal-unit">ETH</span>
+          </td>
+          <td class="ledger-bar-cell">
+            <div class="ledger-bar-track">
+              <div class="ledger-bar-fill ${acc.role}" style="width:${barPct}%"></div>
+            </div>
+          </td>
+        </tr>
+      `;
+    });
+
+    html += `</tbody></table></div>`;
+    wrap.innerHTML = html;
+
+  } catch (err) {
+    wrap.innerHTML = `<div class="chain-loading chain-error">⚠ ${esc(String(err))}</div>`;
   }
-  return hash + "…";
 }
 
 // ── Verify token (student) ────────────────────────────────────────────────────
