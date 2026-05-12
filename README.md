@@ -7,94 +7,6 @@
 
 # Diagrams
 
-## Login
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant User
-    participant Frontend
-    participant API
-    participant UserStore
-
-    User->>Frontend: Enter username + password
-    Frontend->>API: POST /api/auth/login
-    API->>UserStore: findUserByUsername(username)
-    UserStore-->>API: User record
-    API->>UserStore: validatePassword(user, password)
-    UserStore-->>API: Valid / Invalid
-    API-->>Frontend: JWT token + role + walletAddress
-    Frontend->>Frontend: Store token in memory
-```
-
----
-
-## Get Current User
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant User
-    participant Frontend
-    participant API
-
-    User->>Frontend: Load profile / dashboard
-    Frontend->>API: GET /api/auth/me [Bearer token]
-    API->>API: authenticate middleware — verify JWT
-    API-->>Frontend: username + role + walletAddress
-```
-
----
-
-## Register Student
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant Issuer
-    participant Frontend
-    participant API
-    participant Chain as Hardhat Chain
-    participant UserStore
-
-    Issuer->>Frontend: Fill register-student form
-    Frontend->>API: GET /api/auth/free-accounts [issuer token]
-    API->>Chain: provider.listAccounts()
-    Chain-->>API: All Hardhat accounts
-    API->>UserStore: getAllStudents()
-    UserStore-->>API: Registered students
-    API-->>Frontend: Free (unassigned) wallet accounts
-    Frontend->>Frontend: Populate wallet dropdown
-    Issuer->>Frontend: Submit username + password + studentName + walletAddress
-    Frontend->>API: POST /api/auth/register-student [issuer token]
-    API->>Chain: isHardhatAccount(walletAddress)
-    Chain-->>API: Valid account confirmed
-    API->>UserStore: registerStudent(...)
-    UserStore-->>API: New student record
-    API-->>Frontend: 201 Created — student object
-```
-
----
-
-## Change Issuer Password
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant Issuer
-    participant Frontend
-    participant API
-    participant UserStore
-
-    Issuer->>Frontend: Enter currentPassword + newPassword
-    Frontend->>API: POST /api/auth/change-password [issuer token]
-    API->>UserStore: validatePassword + changeIssuerPassword()
-    UserStore-->>API: Password updated
-    API-->>Frontend: Success message
-```
-
----
-
 ## Mint Badge NFT
 
 ```mermaid
@@ -150,25 +62,6 @@ sequenceDiagram
 
 ---
 
-## Get Badge by Token ID
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant User
-    participant Frontend
-    participant API
-    participant Contract as BadgeNFT
-
-    User->>Frontend: Navigate to badge detail page
-    Frontend->>API: GET /api/badges/:tokenId [public]
-    API->>Contract: getBadge(tokenId)
-    Contract-->>API: BadgeData + revoked + reason + tokenURI
-    API-->>Frontend: Formatted badge object
-```
-
----
-
 ## Verify Badge (Public)
 
 ```mermaid
@@ -184,46 +77,6 @@ sequenceDiagram
     API->>Contract: getBadgeSummary(tokenId)
     Contract-->>API: owner + exists + revoked + courseName + issuedAt
     API-->>Frontend: Verification result (valid / revoked / not found)
-```
-
----
-
-## Get Badges by Owner
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant User
-    participant Frontend
-    participant API
-    participant Contract as BadgeNFT
-
-    User->>Frontend: View wallet badges
-    Frontend->>API: GET /api/badges/owner/:address [authenticated]
-    API->>API: If student role — enforce own address only
-    API->>Contract: getTokensByOwner(address)
-    Contract-->>API: Array of tokenIds
-    API->>Contract: getBadge(id) — parallel for each tokenId
-    Contract-->>API: Badge data for each token
-    API-->>Frontend: Array of formatted badge objects
-```
-
----
-
-## Get NFT Metadata (OpenSea Format)
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant Client
-    participant API
-    participant Contract as BadgeNFT
-
-    Client->>API: GET /api/metadata/:tokenId [public]
-    API->>Contract: getBadge(tokenId)
-    Contract-->>API: BadgeData struct
-    API->>API: generateMetadata(tokenId, data)
-    API-->>Client: ERC-721 metadata JSON (name, description, attributes)
 ```
 
 ---
@@ -253,73 +106,6 @@ sequenceDiagram
 
 ---
 
-## Get Badge Stats
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant Issuer
-    participant Frontend
-    participant API
-    participant Chain as Hardhat Chain
-    participant Contract as BadgeNFT
-
-    Issuer->>Frontend: Open stats / dashboard
-    Frontend->>API: GET /api/badges/stats [issuer token]
-    API->>Contract: totalSupply()
-    Contract-->>API: Total minted count
-    API->>API: getBadgeHistory() — fetch all events
-    API->>Contract: getBadge(id) — per minted event for grade + category
-    Contract-->>API: Badge details
-    API->>API: Aggregate byCategory + byGrade + totalRevoked
-    API-->>Frontend: Stats object
-```
-
----
-
-## Chain Explorer — Block List
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant Issuer
-    participant Frontend
-    participant API
-    participant Chain as Hardhat Chain
-    participant Contract as BadgeNFT
-
-    Issuer->>Frontend: Open chain explorer
-    Frontend->>API: GET /api/chain/blocks [issuer token]
-    API->>Chain: provider.getBlockNumber()
-    Chain-->>API: Latest block number
-    API->>Contract: getBadgeHistory() — all mint + revoke events
-    Contract-->>API: Event list with block numbers
-    API->>Chain: getBlock(n) — parallel for deployment + event + tail blocks
-    Chain-->>API: Block data (hash, gasUsed, txCount, timestamp)
-    API->>API: Merge events into each block's data
-    API-->>Frontend: Enriched block array + contract metadata
-```
-
----
-
-## Chain Explorer — Issuer Nonce
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant Issuer
-    participant Frontend
-    participant API
-    participant Chain as Hardhat Chain
-
-    Issuer->>Frontend: View issuer wallet details
-    Frontend->>API: GET /api/chain/nonce [issuer token]
-    API->>Chain: provider.getTransactionCount(issuerAddress)
-    Chain-->>API: Current nonce
-    API-->>Frontend: nonce + issuerAddress
-```
-
----
 
 ## Chain Explorer — Wallet Ledger
 
@@ -342,26 +128,6 @@ sequenceDiagram
     Chain-->>API: Balance in Wei
     API->>API: Enrich with role (issuer / student / unassigned) + ETH balance
     API-->>Frontend: Full ledger array
-```
-
----
-
-## Health Check
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant Client
-    participant API
-    participant Chain as Hardhat Chain
-    participant Contract as BadgeNFT
-
-    Client->>API: GET /api/health [public]
-    API->>Chain: provider.getBlockNumber()
-    Chain-->>API: Latest block
-    API->>Contract: totalSupply()
-    Contract-->>API: Badge count
-    API-->>Client: blockNumber + totalBadgesMinted + contractAddress + rpcUrl
 ```
 
 ## Table of Contents
