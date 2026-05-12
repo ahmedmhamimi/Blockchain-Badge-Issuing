@@ -507,6 +507,30 @@ app.get("/api/chain/blocks", authenticate, requireRole("issuer"), async (req, re
   }
 });
 
+// GET /api/chain/nonce  [issuer only]
+// Returns the current transaction count (nonce) for the issuer wallet.
+app.get("/api/chain/nonce", authenticate, requireRole("issuer"), async (req, res) => {
+  try {
+    const result = await getContract();
+    if (!result.ok) return res.status(result.status || 503).json({ ok: false, message: result.message });
+
+    const depResult = getDeployment();
+    if (!depResult.ok) return res.status(503).json({ ok: false, message: "Deployment not found." });
+
+    const { provider } = result;
+    const issuerAddress = depResult.deployment.deployerAddress;
+    const nonce = await provider.getTransactionCount(issuerAddress);
+
+    return res.json({
+      ok:            true,
+      nonce,
+      issuerAddress,
+    });
+  } catch (err) {
+    return res.status(500).json({ ok: false, message: normalizeError(err) });
+  }
+});
+
 // GET /api/chain/ledger  [issuer only]
 // Returns balances for all Hardhat accounts (the wallet ledger).
 app.get("/api/chain/ledger", authenticate, requireRole("issuer"), async (req, res) => {

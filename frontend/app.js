@@ -184,11 +184,32 @@ function switchTabStudent(tabId, btn) {
   if (btn) btn.classList.add("active");
 }
 
+// ── Nonce tracker ─────────────────────────────────────────────────────────────
+
+async function refreshNonce() {
+  const valEl  = document.getElementById("nonceValue");
+  const addrEl = document.getElementById("nonceAddress");
+  if (!valEl) return;
+  valEl.textContent = "…";
+  try {
+    const { data } = await apiFetch("GET", "/api/chain/nonce");
+    if (data.ok) {
+      valEl.textContent  = data.nonce;
+      if (addrEl) addrEl.textContent = data.issuerAddress.slice(0, 10) + "…" + data.issuerAddress.slice(-6);
+    } else {
+      valEl.textContent = "err";
+    }
+  } catch {
+    valEl.textContent = "—";
+  }
+}
+
 // ── Issuer: load initial data ─────────────────────────────────────────────────
 
 async function loadIssuerData() {
   await loadStudents();
   await loadFreeAccounts();
+  await refreshNonce();
 }
 
 // ── Students (issuer) ─────────────────────────────────────────────────────────
@@ -199,6 +220,7 @@ async function loadStudents() {
   _students = data.students;
   renderStudentList();
   populateRecipientDropdown();
+  populateGalleryDropdown();
 }
 
 function renderStudentList() {
@@ -240,6 +262,20 @@ function onRecipientSelect() {
     document.getElementById("mintRecipient").value   = opt.value;
     document.getElementById("mintStudentName").value = opt.dataset.name || "";
   }
+}
+
+function populateGalleryDropdown() {
+  const sel = document.getElementById("galleryAddress");
+  if (!sel) return;
+  const current = sel.value;
+  sel.innerHTML = `<option value="">— Select a student wallet —</option>`;
+  _students.forEach(s => {
+    const opt = document.createElement("option");
+    opt.value       = s.walletAddress;
+    opt.textContent = `${s.studentName} — ${s.walletAddress.slice(0, 10)}…${s.walletAddress.slice(-6)}`;
+    if (s.walletAddress === current) opt.selected = true;
+    sel.appendChild(opt);
+  });
 }
 
 function prefillMintForm(wallet, name) {
@@ -385,6 +421,7 @@ async function mintBadge() {
   document.getElementById("mintResultBlock").textContent = data.blockNumber;
   show("mintResult");
   setMsg("mintMsg", "", false);
+  refreshNonce();
 }
 
 // ── Gallery (issuer) ──────────────────────────────────────────────────────────

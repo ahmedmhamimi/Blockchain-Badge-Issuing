@@ -107,6 +107,19 @@
 
         <h2 class="section-title">Mint New Badge</h2>
 
+        <!-- Nonce tracker -->
+        <div class="nonce-widget" id="nonceWidget">
+          <div class="nonce-widget-left">
+            <span class="nonce-label">Issuer Wallet Nonce</span>
+            <span class="nonce-hint">On-chain transaction count for the issuer account</span>
+          </div>
+          <div class="nonce-widget-right">
+            <span class="nonce-value" id="nonceValue">—</span>
+            <span class="nonce-sublabel" id="nonceAddress"></span>
+          </div>
+          <button class="btn btn-ghost btn-sm nonce-refresh" onclick="refreshNonce()" title="Refresh nonce">↻</button>
+        </div>
+
         <div class="form-grid">
           <div class="form-group">
             <label>Recipient (Student Wallet)</label>
@@ -221,7 +234,9 @@
       <div class="tab-content hidden" id="tabGallery">
         <h2 class="section-title">Badge Gallery</h2>
         <div class="gallery-controls">
-          <input type="text" id="galleryAddress" placeholder="Wallet address to look up" style="flex:1;" />
+          <select id="galleryAddress" style="flex:1;">
+            <option value="">— Select a student wallet —</option>
+          </select>
           <button class="btn btn-primary" onclick="loadBadgesForAddress()">Load Badges</button>
         </div>
         <div class="sort-bar" id="gallerySortBar" style="display:none;">

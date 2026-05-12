@@ -1102,3 +1102,58 @@ select option { background: var(--bg2); color: var(--text); }
   height: 3px;
   background: linear-gradient(90deg, var(--primary) 0%, #818cf8 40%, #a78bfa 70%, #c084fc 100%);
 }
+
+/* ── Nonce tracker widget ───────────────────────────────────────────────────── */
+.nonce-widget {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--primary-lt);
+  border: 1.5px solid var(--primary-md);
+  border-radius: var(--radius-lg);
+  padding: 14px 18px;
+  margin-bottom: 22px;
+}
+.nonce-widget-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+.nonce-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  color: var(--primary);
+}
+.nonce-hint {
+  font-size: 11px;
+  color: var(--text3);
+}
+.nonce-widget-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+.nonce-value {
+  font-family: 'Fraunces', serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--primary);
+  line-height: 1;
+  letter-spacing: -1px;
+  min-width: 40px;
+  text-align: right;
+}
+.nonce-sublabel {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--text3);
+}
+.nonce-refresh {
+  flex-shrink: 0;
+  color: var(--primary) !important;
+  border-color: var(--primary-md) !important;
+}
